@@ -53,6 +53,8 @@ public class ChatChannelMemberListController: DataController, DelegateCallable, 
     /// and expose the published values by mapping them to a read-only `AnyPublisher` type.
     @available(iOS 13, *)
     lazy var basePublishers: BasePublishers = .init(controller: self)
+
+    private let membersLoader: QueuedExecutor = .init(queueLabelSuffix: "MemberListController")
     
     private let environment: Environment
     
@@ -140,13 +142,37 @@ public extension ChatChannelMemberListController {
         completion: ((Error?) -> Void)? = nil
     ) {
         var updatedQuery = query
+        let pagination = Pagination(pageSize: limit, offset: members.count)
         updatedQuery.pagination = Pagination(pageSize: limit, offset: members.count)
-        memberListUpdater.load(updatedQuery) { error in
-            self.query = updatedQuery
-            self.callback {
-                completion?(error)
+
+        membersLoader.executeInQueue(
+            executor: { [weak self] executorCompletion in
+                guard let self = self else {
+                    log.error("Callback called when self is nil")
+                    executorCompletion(nil)
+                    return
+                }
+
+                // Requests are put to serial queue,
+                // So check maybe we already requested and loaded this data before
+                if self.members.count > pagination.offset + pagination.pageSize {
+                    self.query = updatedQuery
+                    executorCompletion(nil)
+                    return
+                }
+                
+                // Perform Loading
+                self.memberListUpdater.load(updatedQuery) { [weak self] error in
+                    self?.query = updatedQuery
+                    executorCompletion(error)
+                }
+            },
+            completion: { error in
+                self.callback {
+                    completion?(error)
+                }
             }
-        }
+        )
     }
 }
 

@@ -1147,6 +1147,7 @@
 		F8BA4FA425E69D8F0078BA9D /* iMessageComposerVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8BA4FA325E69D8F0078BA9D /* iMessageComposerVC.swift */; };
 		F8CF04AF25EF7D9F00077209 /* iMessageCellSeparatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8CF04AE25EF7D9F00077209 /* iMessageCellSeparatorView.swift */; };
 		F8FC489826038BDA00A27DC5 /* SlackChatMessageGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8FC489726038BDA00A27DC5 /* SlackChatMessageGalleryView.swift */; };
+		FBD9603626E8AAA200F97A15 /* QueuedExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCE4807F452E914DC9443086 /* QueuedExecutor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -2286,6 +2287,7 @@
 		ADFCCD0725C9B8D70024505D /* ChannelUnreadCount_Mock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelUnreadCount_Mock.swift; sourceTree = "<group>"; };
 		ADFCCD5E25C9D4350024505D /* ChatUserSearchController_Mock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatUserSearchController_Mock.swift; sourceTree = "<group>"; };
 		BCE48068C1C02C0689BEB64E /* JSONDecoder_Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = JSONDecoder_Tests.swift; sourceTree = "<group>"; };
+		BCE4807F452E914DC9443086 /* QueuedExecutor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = QueuedExecutor.swift; sourceTree = "<group>"; };
 		BCE489A4B136D48249DD6969 /* JSONEncoder_Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = JSONEncoder_Tests.swift; sourceTree = "<group>"; };
 		BD4016352638411D00F09774 /* Deprecations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deprecations.swift; sourceTree = "<group>"; };
 		BD40C1F4265FA80D004392CE /* ImageCDN_Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCDN_Tests.swift; sourceTree = "<group>"; };
@@ -3020,6 +3022,7 @@
 				881506EB258212BF0013935B /* MultipartFormData.swift */,
 				BCE48068C1C02C0689BEB64E /* JSONDecoder_Tests.swift */,
 				BCE489A4B136D48249DD6969 /* JSONEncoder_Tests.swift */,
+				BCE4807F452E914DC9443086 /* QueuedExecutor.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -6451,6 +6454,7 @@
 				DABC6ABC2546FD0100A8FC78 /* MessageAttachmentPayload.swift in Sources */,
 				88D85DA7252F3C1D00AE1030 /* MemberListController.swift in Sources */,
 				79280F4B248523C000CDEB89 /* ConnectionEvents.swift in Sources */,
+				FBD9603626E8AAA200F97A15 /* QueuedExecutor.swift in Sources */,
 				79158CF425F133FB00186102 /* ChannelTruncatedEventMiddleware.swift in Sources */,
 				882C574A252C767E00E60C44 /* ChannelMemberListPayload.swift in Sources */,
 				DAFAD6A324DD8E1A0043ED06 /* ChannelEditDetailPayload.swift in Sources */,
