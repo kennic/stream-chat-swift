@@ -22,12 +22,8 @@ class ChannelListController_Tests: StressTestCase {
     override func setUp() {
         super.setUp()
         
-        setUp(isLocalStorageEnabled: true)
-    }
-    
-    private func setUp(isLocalStorageEnabled: Bool) {
         env = TestEnvironment()
-        client = ChatClient.mock(isLocalStorageEnabled: isLocalStorageEnabled)
+        client = ChatClient.mock
         query = .init(filter: .in(.members, values: [.unique]))
         controller = ChatChannelListController(query: query, client: client, environment: env.environment)
         controllerCallbackQueueID = UUID()
@@ -165,7 +161,8 @@ class ChannelListController_Tests: StressTestCase {
     }
     
     func test_synchronize_callsChannelQueryUpdater_inOfflineMode() {
-        setUp(isLocalStorageEnabled: false)
+        client = ChatClient.mock(isLocalStorageEnabled: false)
+        controller = ChatChannelListController(query: query, client: client, environment: env.environment)
         
         let queueId = UUID()
         controller.callbackQueue = .testQueue(withId: queueId)
