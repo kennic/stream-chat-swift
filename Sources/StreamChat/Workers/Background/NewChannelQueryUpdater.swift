@@ -90,16 +90,12 @@ final class NewChannelQueryUpdater: Worker {
         database.backgroundReadOnlyContext.perform { [weak self] in
             guard let queries = self?.queries else { return }
             
-            var updatedQueries: [ChannelListQuery] = []
-            
-            do {
-                updatedQueries = try queries.map {
-                    // Modify original query filter
-                    try $0.asChannelListQueryWithUpdatedFilter(filterToAdd: .equal("cid", to: channelDTO.cid))
-                }
+            let updatedQueries: [ChannelListQuery] = queries.compactMap {
+                guard let query = $0.asModel() else { return nil }
                 
-            } catch {
-                log.error("Internal error. Failed to update ChannelListQueries for the new channel: \(error)")
+                return ChannelListQuery(
+                    filter: .and([query.filter, .equal("cid", to: channelDTO.cid)])
+                )
             }
             
             // Send `update(channelListQuery:` requests so corresponding queries will be linked to the channel
@@ -120,20 +116,5 @@ extension NewChannelQueryUpdater {
             _ database: DatabaseContainer,
             _ apiClient: APIClient
         ) -> ChannelListUpdater = ChannelListUpdater.init
-    }
-}
-
-private extension ChannelListQueryDTO {
-    func asChannelListQueryWithUpdatedFilter(
-        filterToAdd filter: Filter<ChannelListFilterScope>
-    ) throws -> ChannelListQuery {
-        let encodedFilter = try JSONDecoder.default
-            .decode(Filter<ChannelListFilterScope>.self, from: filterJSONData)
-        
-        // We need to pass original `filterHash` so channel will be linked to original query, not the modified one
-        var updatedFilter: Filter<ChannelListFilterScope> = .and([encodedFilter, filter])
-        updatedFilter.explicitHash = filterHash
-        
-        return ChannelListQuery(filter: updatedFilter)
     }
 }

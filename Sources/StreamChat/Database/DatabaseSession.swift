@@ -234,8 +234,8 @@ protocol ChannelListQueryDatabaseSession {
     /// Creates a new `ChannelListQueryDTO` object in the database based in the given `ChannelListQuery`.
     func saveQuery(query: ChannelListQuery) -> ChannelListQueryDTO
     
-    /// Fetches `ChannelListQueryDTO` entity for the given `filterHash`.
-    func channelListQuery(filterHash: String) -> ChannelListQueryDTO?
+    /// Fetches `ChannelListQueryDTO` entity for the given `queryHash`.
+    func channelListQuery(queryHash: String) -> ChannelListQueryDTO?
     
     /// Fetches all `ChannelListQueryDTO` persisted in the database.
     func loadChannelListQueries() -> [ChannelListQueryDTO]
