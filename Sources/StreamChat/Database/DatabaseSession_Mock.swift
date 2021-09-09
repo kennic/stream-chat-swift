@@ -21,6 +21,18 @@ class DatabaseSessionMock: DatabaseSession {
 // Here start the boilerplate that forwards and intercepts the session calls if needed
 
 extension DatabaseSessionMock {
+    func saveQuery(query: ChannelListQuery) -> ChannelListQueryDTO {
+        underlyingSession.saveQuery(query: query)
+    }
+    
+    func channelListQuery(filterHash: String) -> ChannelListQueryDTO? {
+        underlyingSession.channelListQuery(filterHash: filterHash)
+    }
+    
+    func loadChannelListQueries() -> [ChannelListQueryDTO] {
+        underlyingSession.loadChannelListQueries()
+    }
+    
     func saveCurrentUserDevices(_ devices: [DevicePayload], clearExisting: Bool) throws {
         try throwErrorIfNeeded()
         try underlyingSession.saveCurrentUserDevices(devices, clearExisting: clearExisting)

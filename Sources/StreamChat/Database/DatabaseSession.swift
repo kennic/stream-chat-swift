@@ -230,6 +230,17 @@ protocol MemberListQueryDatabaseSession {
     func saveQuery(_ query: ChannelMemberListQuery) throws -> ChannelMemberListQueryDTO
 }
 
+protocol ChannelListQueryDatabaseSession {
+    /// Creates a new `ChannelListQueryDTO` object in the database based in the given `ChannelListQuery`.
+    func saveQuery(query: ChannelListQuery) -> ChannelListQueryDTO
+    
+    /// Fetches `ChannelListQueryDTO` entity for the given `filterHash`.
+    func channelListQuery(filterHash: String) -> ChannelListQueryDTO?
+    
+    /// Fetches all `ChannelListQueryDTO` persisted in the database.
+    func loadChannelListQueries() -> [ChannelListQueryDTO]
+}
+
 protocol AttachmentDatabaseSession {
     /// Fetches `AttachmentDTO`entity for the given `id`.
     func attachment(id: AttachmentId) -> AttachmentDTO?
@@ -259,7 +270,8 @@ protocol DatabaseSession: UserDatabaseSession,
     MemberDatabaseSession,
     MemberListQueryDatabaseSession,
     AttachmentDatabaseSession,
-    ChannelMuteDatabaseSession {}
+    ChannelMuteDatabaseSession,
+    ChannelListQueryDatabaseSession {}
 
 extension DatabaseSession {
     @discardableResult
