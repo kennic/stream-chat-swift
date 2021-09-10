@@ -221,6 +221,9 @@ public class ChatChannelController: DataController, DelegateCallable, DataStoreP
     
     private var eventObservers: [EventObserver] = []
     private let environment: Environment
+
+    // Atomic variable to control loading of messages, only one loading in progress
+    @Atomic private var loadingPreviousMessages: Bool = false
     
     /// This callback is called after channel is created on backend but before channel is saved to DB. When channel is created
     /// we receive backend generated cid and setting up current `ChannelController` to observe this channel DB changes.
@@ -608,7 +611,7 @@ public extension ChatChannelController {
         }
     }
     
-    /// Loads previous messages from backend.
+    /// Loads previous messages from backend, only one request in progress available.
     ///
     /// - Parameters:
     ///   - messageId: ID of the last fetched message. You will get messages `older` than the provided ID.
@@ -621,32 +624,18 @@ public extension ChatChannelController {
         limit: Int = 25,
         completion: ((Error?) -> Void)? = nil
     ) {
-        /// Perform action only if channel is already created on backend side and have a valid `cid`.
-        guard cid != nil, isChannelAlreadyCreated else {
-            channelModificationFailed(completion)
-            return
+        if _loadingPreviousMessages.compareAndSwap(old: false, new: true) {
+            loadPreviousMessagesNonAtomic(completion: { [weak self] error in
+                guard let self = self else {
+                    return
+                }
+                self.loadingPreviousMessages = false
+                // We already in a callback so additional wrap is not needed
+                completion?(error)
+            })
+        } else {
+            callback { completion?(ClientError.MessageLoadingAlreadyInProgress()) }
         }
-        
-        guard let messageId = messageId ?? messages.last?.id else {
-            log.error(ClientError.ChannelEmptyMessages().localizedDescription)
-            callback { completion?(ClientError.ChannelEmptyMessages()) }
-            return
-        }
-
-        guard !hasLoadedAllPreviousMessages else {
-            completion?(nil)
-            return
-        }
-        channelQuery.pagination = MessagesPagination(pageSize: limit, parameter: .lessThan(messageId))
-        updater.update(channelQuery: channelQuery, completion: { result in
-            switch result {
-            case let .success(payload):
-                self.hasLoadedAllPreviousMessages = payload.messages.count < limit
-                self.callback { completion?(nil) }
-            case let .failure(error):
-                self.callback { completion?(error) }
-            }
-        })
     }
     
     /// Loads next messages from backend.
@@ -1102,6 +1091,39 @@ public extension ChatChannelController {
             }
         }
     }
+
+    private func loadPreviousMessagesNonAtomic(
+        before messageId: MessageId? = nil,
+        limit: Int = 25,
+        completion: ((Error?) -> Void)? = nil
+    ) {
+        /// Perform action only if channel is already created on backend side and have a valid `cid`.
+        guard cid != nil, isChannelAlreadyCreated else {
+            channelModificationFailed(completion)
+            return
+        }
+
+        guard let messageId = messageId ?? messages.last?.id else {
+            log.error(ClientError.ChannelEmptyMessages().localizedDescription)
+            callback { completion?(ClientError.ChannelEmptyMessages()) }
+            return
+        }
+
+        guard !hasLoadedAllPreviousMessages else {
+            callback { completion?(nil) }
+            return
+        }
+        channelQuery.pagination = MessagesPagination(pageSize: limit, parameter: .lessThan(messageId))
+        updater.update(channelQuery: channelQuery, completion: { result in
+            switch result {
+            case let .success(payload):
+                self.hasLoadedAllPreviousMessages = payload.messages.count < limit
+                self.callback { completion?(nil) }
+            case let .failure(error):
+                self.callback { completion?(error) }
+            }
+        })
+    }
 }
 
 extension ChatChannelController {
@@ -1324,6 +1346,12 @@ extension ClientError {
     class InvalidCooldownDuration: ClientError {
         override public var localizedDescription: String {
             "You can't specify a value outside the range 1-120 for cooldown duration."
+        }
+    }
+
+    class MessageLoadingAlreadyInProgress: ClientError {
+        override public var localizedDescription: String {
+            "Message loading is already in progress, please call this function after previous requests finished"
         }
     }
 }
