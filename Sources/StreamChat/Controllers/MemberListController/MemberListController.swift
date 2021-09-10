@@ -54,7 +54,9 @@ public class ChatChannelMemberListController: DataController, DelegateCallable, 
     @available(iOS 13, *)
     lazy var basePublishers: BasePublishers = .init(controller: self)
 
-    private let membersLoader: QueuedExecutor = .init(queueLabelSuffix: "MemberListController")
+    // Executor to control loading of messages, only one loading in progress
+    private let membersLoadingExecutor: BlockingExecutor =
+        .init(executorTitle: "ChatChannelMemberListController.MembersLoading")
     
     private let environment: Environment
     
@@ -127,12 +129,26 @@ public class ChatChannelMemberListController: DataController, DelegateCallable, 
             state = .localDataFetchFailed(ClientError(with: error))
         }
     }
+
+    private func loadNextMembersNonAtomic(
+        limit: Int = 25,
+        completion: ((Error?) -> Void)? = nil
+    ) {
+        var updatedQuery = query
+        updatedQuery.pagination = Pagination(pageSize: limit, offset: members.count)
+        memberListUpdater.load(updatedQuery) { error in
+            self.query = updatedQuery
+            self.callback {
+                completion?(error)
+            }
+        }
+    }
 }
 
 // MARK: - Actions
 
 public extension ChatChannelMemberListController {
-    /// Loads next members from backend.
+    /// Loads next members from backend, only one request in progress available.
     /// - Parameters:
     ///   - limit: The page size.
     ///   - completion: The completion. Will be called on a **callbackQueue** when the network request is finished.
@@ -141,34 +157,16 @@ public extension ChatChannelMemberListController {
         limit: Int = 25,
         completion: ((Error?) -> Void)? = nil
     ) {
-        var updatedQuery = query
-        let pagination = Pagination(pageSize: limit, offset: members.count)
-        updatedQuery.pagination = Pagination(pageSize: limit, offset: members.count)
-
-        membersLoader.executeInQueue(
+        membersLoadingExecutor.executeBlocking(
             executor: { [weak self] executorCompletion in
-                guard let self = self else {
-                    log.error("Callback called when self is nil")
-                    executorCompletion(nil)
-                    return
-                }
-
-                // Requests are put to serial queue,
-                // So check maybe we already requested and loaded this data before
-                if self.members.count > pagination.offset + pagination.pageSize {
-                    self.query = updatedQuery
-                    executorCompletion(nil)
-                    return
-                }
-                
-                // Perform Loading
-                self.memberListUpdater.load(updatedQuery) { [weak self] error in
-                    self?.query = updatedQuery
+                self?.loadNextMembersNonAtomic(
+                    limit: limit
+                ) { error in
                     executorCompletion(error)
                 }
             },
-            completion: { error in
-                self.callback {
+            completion: { [weak self] error in
+                self?.callback {
                     completion?(error)
                 }
             }

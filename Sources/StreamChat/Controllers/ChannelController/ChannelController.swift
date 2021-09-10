@@ -222,8 +222,8 @@ public class ChatChannelController: DataController, DelegateCallable, DataStoreP
     private var eventObservers: [EventObserver] = []
     private let environment: Environment
 
-    // Atomic variable to control loading of messages, only one loading in progress
-    @Atomic private var loadingPreviousMessages: Bool = false
+    // Executor to control loading of messages, only one loading in progress
+    private let messageLoadingExecutor: BlockingExecutor = .init(executorTitle: "ChannelController.MessageLoading")
     
     /// This callback is called after channel is created on backend but before channel is saved to DB. When channel is created
     /// we receive backend generated cid and setting up current `ChannelController` to observe this channel DB changes.
@@ -624,18 +624,21 @@ public extension ChatChannelController {
         limit: Int = 25,
         completion: ((Error?) -> Void)? = nil
     ) {
-        if _loadingPreviousMessages.compareAndSwap(old: false, new: true) {
-            loadPreviousMessagesNonAtomic(completion: { [weak self] error in
-                guard let self = self else {
-                    return
+        messageLoadingExecutor.executeBlocking(
+            executor: { [weak self] executorCompletion in
+                self?.loadPreviousMessagesNonAtomic(
+                    before: messageId,
+                    limit: limit
+                ) { error in
+                        executorCompletion(error)
                 }
-                self.loadingPreviousMessages = false
-                // We already in a callback so additional wrap is not needed
-                completion?(error)
-            })
-        } else {
-            callback { completion?(ClientError.MessageLoadingAlreadyInProgress()) }
-        }
+            },
+            completion: { [weak self] error in
+                self?.callback {
+                    completion?(error)
+                }
+            }
+        )
     }
     
     /// Loads next messages from backend.
@@ -1346,12 +1349,6 @@ extension ClientError {
     class InvalidCooldownDuration: ClientError {
         override public var localizedDescription: String {
             "You can't specify a value outside the range 1-120 for cooldown duration."
-        }
-    }
-
-    class MessageLoadingAlreadyInProgress: ClientError {
-        override public var localizedDescription: String {
-            "Message loading is already in progress, please call this function after previous requests finished"
         }
     }
 }
